@@ -1,0 +1,49 @@
+name: Build darwin:rkdeveloptool
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'target branch of remote repository'
+        required: false
+        default: 'master'
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up environment
+      run: |
+        brew install automake autoconf libusb pkg-config git wget
+
+    - name: Clone And Patch
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        git config --global user.email "${GITHUB_ACTOR_ID}+${GITHUB_ACTOR}@users.noreply.github.com"
+        git config --global user.name "$(gh api /users/${GITHUB_ACTOR} | jq .name -r)"
+        git clone https://github.com/rockchip-linux/rkdeveloptool.git
+        cd rkdeveloptool
+        git checkout ${{ github.event.inputs.branch }}
+        wget https://patch-diff.githubusercontent.com/raw/rockchip-linux/rkdeveloptool/pull/73.patch
+        wget https://patch-diff.githubusercontent.com/raw/rockchip-linux/rkdeveloptool/pull/85.patch
+        git am *.patch
+
+    - name: Build
+      run: |
+        cd rkdeveloptool
+        autoreconf -i
+        ./configure
+        make -j $(nproc)
+
+    - name: Upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: rkdeveloptool-darwin-arm64
+        path: ./rkdeveloptool/rkdeveloptool
+
+

@@ -1,0 +1,22 @@
+name: Build darwin:rockusb
+
+on:
+  workflow_dispatch:
+    inputs: {}
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Build
+      run: cargo install --root . rockusb --example rockusb
+
+    - name: Upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: rockusb-darwin-arm64
+        path: ./bin/rockusb
